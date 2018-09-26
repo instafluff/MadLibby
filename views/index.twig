@@ -1,0 +1,72 @@
+{% extends 'layout.twig' %}
+
+{% block body %}
+	<div id="vote-wrapper" class="vote-wrapper" style="background-color: #2C3037">
+		<h1 id="title" style="color: #57B4C1;">Type !mad [phrase] to add to the story!</h1>
+		<div class="container">
+			<!-- <h1 style="color: #3fa34d;">YES: <span id="yes-count">0</span></h1>
+			<h1 style="color: #cc2936">NO: <span id="no-count">0</span></h1> -->
+			<h1 id="story"></h1>
+<!-- 		<button id="start" onclick="startVoting()">Start</button>
+			<button id="end" onclick="endVoting()">End</button>
+			<button id="reset" onclick="location.reload()">Reset</button> -->
+		</div>
+	</div>
+	<script>
+		var story = `{{ story }}`;
+		var client = null;
+		var words = [];
+		var author = [];
+		var isEditing = true;
+
+		$( document ).ready(function() {
+			$("#story").css("color", "#2C3037");
+
+			// Replace blanks with elements
+			// story = story.replace( /____/g, "<span style='color: #66ABEF;'>____</span>" );
+			$("#story").html( story );
+
+			var options = {
+				options: {
+					debug: false
+				},
+				connection: {
+					reconnect: true,
+				},
+				identity: {
+					username: "{{ username }}",
+				    password: "{{ oauth }}"
+				},
+				channels: ["#{{ username }}"]
+			};
+
+			client = new tmi.client(options);
+
+			// Connect the client to the server..
+			client.connect();
+
+			client.on("chat", function (channel, userstate, message, self) {
+				if( isEditing &&
+					( message.startsWith( "!lib " ) || message.startsWith( "!mad " ) ) ) {
+					var value = message.replace( "!lib ", "" ).replace( "!mad ", "" ).substring(0, 32);
+					if( value.includes( "<" ) && value.includes( ">" ) ) return; // Prevent XSS attacks LOL
+					words.push( value );
+					author.push( userstate["display-name"] );
+
+					// 66ABEF
+					var replaceValue = "<span class='fin replaced'><u>" + value + "</u><small>" + userstate["display-name"] + "</small> </span>";
+					var start = story.indexOf( "<span class='replaced'" );
+					var end = story.indexOf( "></span" );
+					var replace = story.substring( start, end + 8 );
+					story = story.replace( replace, replaceValue );
+					$("#story").html( story );
+
+					if( !story.includes( "____" ) ) {
+						$("#story").css( "color", "#fff" );
+						isEditing = false;
+					}
+				}
+			});
+		});
+	</script>
+{% endblock %}
